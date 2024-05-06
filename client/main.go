@@ -23,11 +23,28 @@ func main() {
     }
     defer conn.Close()
 
-    // コマンドラインからユーザー名を読み取る
-    reader := bufio.NewReader(os.Stdin)
     fmt.Print("Enter username: ")
-    username, _ := reader.ReadString('\n')
+	// 標準入力からデータを取得する Scanner を作成
+	scanner := bufio.NewScanner(os.Stdin)
+	// データを読み取り
+	scanner.Scan()
+	// エラーチェック
+	if err := scanner.Err(); err != nil {
+		fmt.Println("Error reading input:", err)
+		return
+	}
+	// ユーザー名を取得
+	username := scanner.Text()
     fmt.Println("Starting chat with", username)
+
+    // ユーザー名をバイト化し、長さも取得
+    encodedUsername := []byte(username)
+    usernameLenByte := byte(len(encodedUsername))
+    namePart := append([]byte{usernameLenByte}, encodedUsername...)
+
+    fmt.Println("username:", username)
+    fmt.Println("encoded username:", encodedUsername)
+    fmt.Println("username length:", usernameLenByte)
 
     // サーバーからのメッセージを受信するためのゴルーチンを開始
     go func() {
@@ -46,24 +63,26 @@ func main() {
     for {
         // コマンドラインからメッセージを読み取る
         fmt.Print("Enter message: ")
-        text, _ := reader.ReadString('\n')
+        	// データを読み取り
+        scanner.Scan()
+        // エラーチェック
+        if err := scanner.Err(); err != nil {
+            fmt.Println("Error reading input:", err)
+            return
+        }
+        text := scanner.Text()
+        encodedText := []byte(text)
 
         // ユーザー名とメッセージを結合
-        message := username + "::: " + text
-
-        // メッセージが4096バイト以上の場合はエラーを表示
-        if len([]byte(message)) > 4096 {
-            fmt.Println("Error: Message is too large. Please enter a message of 4096 bytes or less.")
-            continue
-        }
+        message := append(namePart, encodedText...)
 
         // メッセージをサーバーに送信
-        _, err = conn.Write([]byte(message))
+        _, err = conn.Write(message)
         if err != nil {
             fmt.Println("Error writing to UDP:", err)
             return
         }
 
-        fmt.Println("Message sent: ", username)
+        fmt.Println("Message sent: ", message)
     }
 }
