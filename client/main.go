@@ -26,9 +26,7 @@ func main() {
     fmt.Print("Enter username: ")
 	// 標準入力からデータを取得する Scanner を作成
 	scanner := bufio.NewScanner(os.Stdin)
-	// データを読み取り
 	scanner.Scan()
-	// エラーチェック
 	if err := scanner.Err(); err != nil {
 		fmt.Println("Error reading input:", err)
 		return
@@ -41,6 +39,7 @@ func main() {
     encodedUsername := []byte(username)
     usernameLenByte := byte(len(encodedUsername))
     namePart := append([]byte{usernameLenByte}, encodedUsername...)
+    err_count := 0
 
     fmt.Println("username:", username)
     fmt.Println("encoded username:", encodedUsername)
@@ -48,24 +47,27 @@ func main() {
 
     // サーバーからのメッセージを受信するためのゴルーチンを開始
     go func() {
-        buf := make([]byte, 1024)
+        buf := make([]byte, 4096)
         for {
             n, _, err := conn.ReadFromUDP(buf)
             if err != nil {
-                fmt.Println("Error reading from UDP:", err)
+                fmt.Println("\nError reading from UDP:", err)
+                fmt.Print("Enter message: ")
                 return
             }
-            fmt.Println("Received message:", string(buf[:n]))
+            usernameLen := buf[0]
+            username := buf[1:usernameLen+1]
+            message := buf[usernameLen+1:n]
+            fmt.Println("\nReceived from", string(username), ":", string(message))
+            fmt.Print("Enter message: ")
         }
     }()
 
     // メッセージを送信するループ
     for {
-        // コマンドラインからメッセージを読み取る
         fmt.Print("Enter message: ")
-        	// データを読み取り
+        // コマンドラインからメッセージを読み取る
         scanner.Scan()
-        // エラーチェック
         if err := scanner.Err(); err != nil {
             fmt.Println("Error reading input:", err)
             return
@@ -75,14 +77,23 @@ func main() {
 
         // ユーザー名とメッセージを結合
         message := append(namePart, encodedText...)
+        if len(message) > 4096 {
+            fmt.Println("Message too long")
+            continue
+        }
 
         // メッセージをサーバーに送信
         _, err = conn.Write(message)
         if err != nil {
             fmt.Println("Error writing to UDP:", err)
+            err_count++
+            if err_count >= 3 {
+                fmt.Println("Too many errors. Exiting.")
+                os.Exit(1)
+            }
             return
         }
-
+        err_count = 0
         fmt.Println("Message sent: ", message)
     }
 }
