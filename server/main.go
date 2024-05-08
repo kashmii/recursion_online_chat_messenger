@@ -58,10 +58,17 @@ func main() {
             fmt.Println("Error: Message is too large. Please enter a message of 4096 bytes or less.")
             continue
         }
-        _, err = conn.WriteToUDP(message, addr)
-        if err != nil {
-            fmt.Println("Error sending message to client:", err)
-            return
+        // クライアントにメッセージを送信
+        // 送信には *net.UDPAddr 型のアドレスが必要
+        addrList := uniqueAddrList(clientInfos)
+        for _, a := range addrList {
+            if a != addr {
+                _, err = conn.WriteToUDP(message, a)
+                if err != nil {
+                    fmt.Println("Error sending message to client:", err)
+                    return
+                }
+            }
         }
 
         // クライアントの情報を保存
@@ -81,4 +88,17 @@ func main() {
         }
         fmt.Printf("Number of clients: %d\n", len(clientInfos))
     }
+}
+
+// リレーシステム用にクライアントのアドレスを取得
+func uniqueAddrList(m map[string]*ClientInfo) []*net.UDPAddr {
+    list := make([]*net.UDPAddr, 0)
+    seen := make(map[*net.UDPAddr]bool)
+    for _, val := range m {
+		if !seen[val.Address] {
+			list = append(list, val.Address)
+			seen[val.Address] = true
+		}
+	}
+    return list
 }
