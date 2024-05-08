@@ -62,14 +62,16 @@ func main() {
         // 送信には *net.UDPAddr 型のアドレスが必要
         addrList := uniqueAddrList(clientInfos)
         for _, a := range addrList {
-            if a != addr {
-                _, err = conn.WriteToUDP(message, a)
+            a_str := a.String()
+            if a_str != addr.String() {
+                _, err = conn.WriteToUDP(buf, a)
                 if err != nil {
                     fmt.Println("Error sending message to client:", err)
                     return
                 }
             }
         }
+        buf = make([]byte, 4096)
 
         // クライアントの情報を保存
         clientInfos[addr.String()] = &ClientInfo{
