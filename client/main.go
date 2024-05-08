@@ -26,9 +26,7 @@ func main() {
     fmt.Print("Enter username: ")
 	// 標準入力からデータを取得する Scanner を作成
 	scanner := bufio.NewScanner(os.Stdin)
-	// データを読み取り
 	scanner.Scan()
-	// エラーチェック
 	if err := scanner.Err(); err != nil {
 		fmt.Println("Error reading input:", err)
 		return
@@ -41,6 +39,7 @@ func main() {
     encodedUsername := []byte(username)
     usernameLenByte := byte(len(encodedUsername))
     namePart := append([]byte{usernameLenByte}, encodedUsername...)
+    err_count := 0
 
     fmt.Println("username:", username)
     fmt.Println("encoded username:", encodedUsername)
@@ -66,9 +65,8 @@ func main() {
 
     // メッセージを送信するループ
     for {
-        // コマンドラインからメッセージを読み取る
         fmt.Print("Enter message: ")
-        // データを読み取り
+        // コマンドラインからメッセージを読み取る
         scanner.Scan()
         if err := scanner.Err(); err != nil {
             fmt.Println("Error reading input:", err)
@@ -88,9 +86,14 @@ func main() {
         _, err = conn.Write(message)
         if err != nil {
             fmt.Println("Error writing to UDP:", err)
+            err_count++
+            if err_count >= 3 {
+                fmt.Println("Too many errors. Exiting.")
+                os.Exit(1)
+            }
             return
         }
-
+        err_count = 0
         fmt.Println("Message sent: ", message)
     }
 }
