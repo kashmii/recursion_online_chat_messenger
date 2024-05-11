@@ -61,35 +61,11 @@ func main() {
         // クライアントにメッセージを送信
         // 送信には *net.UDPAddr 型のアドレスが必要
         addrList := uniqueAddrList(clientInfos)
-        // TODO: testができたらexample.goのコードでリファクタリングする
-        for _, a := range addrList {
-            a_str := a.String()
-            if a_str != addr.String() {
-                _, err = conn.WriteToUDP(buf, a)
-                if err != nil {
-                    fmt.Println("Error sending message to client:", err)
-                    return
-                }
-            }
-        }
+        sendMessageToClients(conn, buf, addr, addrList)
         buf = make([]byte, 4096)
 
-        // クライアントの情報を保存
-        clientInfos[addr.String()] = &ClientInfo{
-            Address: addr,
-            Username: username,
-            Message: message,
-            ReceivedTime: time.Now(),
-        }
-        deleteTime := 100 * time.Second
-        for key, value := range clientInfos {
-            // 一定時間経過したクライアント情報を削除
-            if time.Since(value.ReceivedTime) > deleteTime {
-                delete(clientInfos, key)
-            }
-            fmt.Println("Client addr:", value.Address, "User:", string(value.Username))
-            fmt.Println("Message:", string(value.Message))
-        }
+        manageClientInfos(clientInfos, addr, username, message)
+        RemoveInactiveClients(clientInfos)
         fmt.Printf("Number of clients: %d\n", len(clientInfos))
     }
 }
@@ -105,4 +81,39 @@ func uniqueAddrList(m map[string]*ClientInfo) []*net.UDPAddr {
 		}
 	}
     return list
+}
+
+func sendMessageToClients(conn *net.UDPConn, buf []byte, addr *net.UDPAddr, addrList []*net.UDPAddr) error {
+    for _, a := range addrList {
+        a_str := a.String()
+        if a_str != addr.String() {
+            _, err := conn.WriteToUDP(buf, a)
+            if err != nil {
+                return err
+            }
+        }
+    }
+    return nil
+}
+
+func manageClientInfos(clientInfos map[string]*ClientInfo, addr *net.UDPAddr, username []byte, message []byte) {
+    // クライアントの情報を保存
+    clientInfos[addr.String()] = &ClientInfo{
+        Address: addr,
+        Username: username,
+        Message: message,
+        ReceivedTime: time.Now(),
+    }
+}
+
+func RemoveInactiveClients(clientInfos map[string]*ClientInfo) {
+    deleteTime := 100 * time.Second
+    for key, value := range clientInfos {
+        // 一定時間経過したクライアント情報を削除
+        if time.Since(value.ReceivedTime) > deleteTime {
+            delete(clientInfos, key)
+        }
+        fmt.Println("Client addr:", value.Address, "User:", string(value.Username))
+        fmt.Println("Message:", string(value.Message))
+    }
 }
