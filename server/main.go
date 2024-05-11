@@ -61,6 +61,7 @@ func main() {
         // クライアントにメッセージを送信
         // 送信には *net.UDPAddr 型のアドレスが必要
         addrList := uniqueAddrList(clientInfos)
+        // TODO: testができたらexample.goのコードでリファクタリングする
         for _, a := range addrList {
             a_str := a.String()
             if a_str != addr.String() {
@@ -80,9 +81,10 @@ func main() {
             Message: message,
             ReceivedTime: time.Now(),
         }
+        deleteTime := 100 * time.Second
         for key, value := range clientInfos {
             // 一定時間経過したクライアント情報を削除
-            if time.Since(value.ReceivedTime) > 100 * time.Second {
+            if time.Since(value.ReceivedTime) > deleteTime {
                 delete(clientInfos, key)
             }
             fmt.Println("Client addr:", value.Address, "User:", string(value.Username))
