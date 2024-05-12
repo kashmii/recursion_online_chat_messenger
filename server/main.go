@@ -32,10 +32,10 @@ func main() {
     defer conn.Close()
     fmt.Println("Starting UDP server on", udpAddress)
 
-    // バッファを作成
-    buf := make([]byte, 4096)
     // クライアントの情報を保存するマップ
     clientInfos := make(map[string]*ClientInfo)
+    // バッファを作成
+    buf := make([]byte, 4096)
 
     for {
         // UDPソケットから読み取ったデータをバイトスライス（buf）に格納
@@ -59,50 +59,43 @@ func main() {
             continue
         }
         // クライアントにメッセージを送信
-        // 送信には *net.UDPAddr 型のアドレスが必要
-        addrList := uniqueAddrList(clientInfos)
-        // TODO: testができたらexample.goのコードでリファクタリングする
-        for _, a := range addrList {
-            a_str := a.String()
-            if a_str != addr.String() {
-                _, err = conn.WriteToUDP(buf, a)
-                if err != nil {
-                    fmt.Println("Error sending message to client:", err)
-                    return
-                }
-            }
-        }
+        sendMessageToOtherMembers(conn, buf, addr, clientInfos)
         buf = make([]byte, 4096)
 
-        // クライアントの情報を保存
-        clientInfos[addr.String()] = &ClientInfo{
-            Address: addr,
-            Username: username,
-            Message: message,
-            ReceivedTime: time.Now(),
-        }
-        deleteTime := 100 * time.Second
-        for key, value := range clientInfos {
-            // 一定時間経過したクライアント情報を削除
-            if time.Since(value.ReceivedTime) > deleteTime {
-                delete(clientInfos, key)
-            }
-            fmt.Println("Client addr:", value.Address, "User:", string(value.Username))
-            fmt.Println("Message:", string(value.Message))
-        }
-        fmt.Printf("Number of clients: %d\n", len(clientInfos))
+        saveClientInfos(clientInfos, addr, username, message)
+        RemoveInactiveClients(clientInfos)
+        fmt.Printf("Number of clients: %d\n\n", len(clientInfos))
     }
 }
 
-// リレーシステム用にクライアントのアドレスを取得
-func uniqueAddrList(m map[string]*ClientInfo) []*net.UDPAddr {
-    list := make([]*net.UDPAddr, 0)
-    seen := make(map[*net.UDPAddr]bool)
-    for _, val := range m {
-		if !seen[val.Address] {
-			list = append(list, val.Address)
-			seen[val.Address] = true
-		}
-	}
-    return list
+func sendMessageToOtherMembers(conn *net.UDPConn, buf []byte, senderAddr *net.UDPAddr, clientInfos map[string]*ClientInfo) error {
+    for key, v := range clientInfos {
+        if key != senderAddr.String() {
+            _, err := conn.WriteToUDP(buf, v.Address)
+            if err != nil {
+                return err
+            }
+        }
+    }
+    return nil
+}
+
+func saveClientInfos(clientInfos map[string]*ClientInfo, addr *net.UDPAddr, username []byte, message []byte) {
+    // クライアントの情報を保存
+    clientInfos[addr.String()] = &ClientInfo{
+        Address: addr,
+        Username: username,
+        Message: message,
+        ReceivedTime: time.Now(),
+    }
+}
+
+func RemoveInactiveClients(clientInfos map[string]*ClientInfo) {
+    deleteTime := 100 * time.Second
+    for key, value := range clientInfos {
+        // 一定時間経過したクライアント情報を削除
+        if time.Since(value.ReceivedTime) > deleteTime {
+            delete(clientInfos, key)
+        }
+    }
 }

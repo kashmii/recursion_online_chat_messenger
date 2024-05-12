@@ -42,8 +42,7 @@ func main() {
     err_count := 0
 
     fmt.Println("username:", username)
-    fmt.Println("encoded username:", encodedUsername)
-    fmt.Println("username length:", usernameLenByte)
+    // fmt.Println("username length:", usernameLenByte)
 
     // サーバーからのメッセージを受信するためのゴルーチンを開始
     go func() {
@@ -58,7 +57,7 @@ func main() {
             usernameLen := buf[0]
             username := buf[1:usernameLen+1]
             message := buf[usernameLen+1:n]
-            fmt.Println("\nReceived from", string(username), ":", string(message))
+            fmt.Println("\nMessage from", string(username), ":", string(message))
             fmt.Print("Enter message: ")
         }
     }()
@@ -94,6 +93,6 @@ func main() {
             return
         }
         err_count = 0
-        fmt.Println("Message sent: ", message)
+        fmt.Print("Message sent!\n\n")
     }
 }
