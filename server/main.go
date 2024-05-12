@@ -64,7 +64,7 @@ func main() {
 
         saveClientInfos(clientInfos, addr, username, message)
         RemoveInactiveClients(clientInfos)
-        fmt.Printf("Number of clients: %d\n", len(clientInfos))
+        fmt.Printf("Number of clients: %d\n\n", len(clientInfos))
     }
 }
 
@@ -97,7 +97,5 @@ func RemoveInactiveClients(clientInfos map[string]*ClientInfo) {
         if time.Since(value.ReceivedTime) > deleteTime {
             delete(clientInfos, key)
         }
-        fmt.Println("Client addr:", value.Address, "User:", string(value.Username))
-        fmt.Println("Message:", string(value.Message))
     }
 }
